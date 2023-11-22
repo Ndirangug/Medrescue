@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "948876628340",
+    "firebase_url": "https://medrescue-e616c-default-rtdb.firebaseio.com",
+    "project_id": "medrescue-e616c",
+    "storage_bucket": "medrescue-e616c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948876628340:android:5147b9c759634f9cba9c21",
+        "android_client_info": {
+          "package_name": "com.jps.medrescue"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "948876628340-6ar4mhh8qll1gjelft2s0t4o8j4mu19j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jps.medrescue",
+            "certificate_hash": "9c27e5d32cfdb9b51f6ad83ba7c90e389179a153"
+          }
+        },
+        {
+          "client_id": "948876628340-s5664dpv47827otrq8ip7fnjan75j1iq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBcFJKK-3rXjG6VwD920ojPcPmu6jgg3ks"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "948876628340-s5664dpv47827otrq8ip7fnjan75j1iq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
