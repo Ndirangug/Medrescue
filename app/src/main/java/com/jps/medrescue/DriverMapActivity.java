@@ -357,7 +357,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
                     pickupMarker = mMap.addMarker(new MarkerOptions().position(pickupLatLng).title("Pickup Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.patient)));
                     getRouteToMarker(pickupLatLng);
-                    drawRouteToDestination(destinationLatLng);
+                    drawRouteToDestination(pickupLatLng);
                 }
 
             }
@@ -440,17 +440,19 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     GeoFire geoFireAvailable = new GeoFire(refAvailable);
                     GeoFire geoFireWorking = new GeoFire(refWorking);
 
-                    switch (customerId){
-                        case "":
-                            geoFireWorking.removeLocation(userId);
-                            geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
-                            break;
+                    geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
 
-                        default:
-                            geoFireAvailable.removeLocation(userId);
-                            geoFireWorking.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
-                            break;
-                    }
+//                    switch (customerId){
+//                        case "":
+//                            geoFireWorking.removeLocation(userId);
+//                            geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+//                            break;
+//
+//                        default:
+//                            geoFireAvailable.removeLocation(userId);
+//                            geoFireWorking.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+//                            break;
+//                    }
                 }
             }
         }
