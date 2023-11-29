@@ -18,10 +18,17 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    def Properties properties = new Properties()
+    properties.load(project.rootProject.file("local.properties").newDataInputStream())
+
     buildTypes {
+        debug {
+            buildConfigField("String", "MAPS_API_KEY", properties.getProperty("MAPS_API_KEY"))
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField("String", "MAPS_API_KEY", properties.getProperty("MAPS_API_KEY"))
         }
     }
     compileOptions {
@@ -46,6 +53,7 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation 'com.google.android.gms:play-services-location:21.0.1'
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    implementation 'com.google.maps:google-maps-services:2.2.0'
     implementation 'com.firebase:geofire-android:3.2.0'
     implementation 'com.github.jd-alexander:library:1.1.0'
     implementation 'androidx.cardview:cardview:1.0.0'
