@@ -87,7 +87,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
     private TextView mDriverName, mDriverPhone, mDriverCar, mCustomerDestination;
 
-    private int radius = 30;
+    private int radius = 1;
     private Boolean driverFound = false;
     private String driverFoundID;
 
@@ -316,6 +316,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         });
 
         fetchHospitalsAround();
+
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -350,7 +351,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("driversAvailable");
 
         GeoFire geoFire = new GeoFire(driverLocation);
-        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(mLastLocation.getLongitude(), mLastLocation.getLatitude()), radius);
+        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()), radius);
 
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
 
@@ -402,8 +403,8 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
             @Override
             public void onGeoQueryReady() {
-                if (!driverFound) {
-                    radius++;
+                if (!driverFound && radius < 99999999) {
+                    radius+=10;
                     // getClosestDriver();
                     getDriversAround();
                 }
@@ -566,7 +567,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
 
     private void drawRouteOnMap(com.google.maps.model.DirectionsRoute route, int color) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
