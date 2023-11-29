@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,11 +28,7 @@ import com.directions.route.Routing;
 import com.directions.route.RoutingListener;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.*;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -48,13 +45,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.maps.DirectionsApi;
+import com.google.maps.GeoApiContext;
+import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.TravelMode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback,RoutingListener {
+public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     Location mLastLocation ;
@@ -137,10 +138,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     case 1:
                         status = 2;
                         erasePolylines();
-                        LatLng currentLatLng = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
                         if(destinationLatLng.latitude!=0.0 && destinationLatLng.longitude!=0.0){
-                            getRouteToMarker(destinationLatLng);
-                            drawRouteToDestination(destinationLatLng);
+                            drawRouteToDestination();
                         }
                         mrideStatus.setText("Patient Assigned ! Please pickup the patient.");
                         break;
@@ -203,6 +202,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         if( pickupMarker!=null){
             pickupMarker.remove();
         }
+        mCustomerInfo.setVisibility(View.INVISIBLE);
 
     }
 
@@ -336,6 +336,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     Marker pickupMarker;
+    LatLng pickupLatLng;
     private DatabaseReference assignedCustomerPickupLocationRef;
     private ValueEventListener assignedCustomerPickupLocationRefListener;
     private void getAssignedCustomerPickupLocation(){
@@ -353,11 +354,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     if(map.get(1)!= null){
                         LocationLng = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng pickupLatLng = new LatLng(LocationLat, LocationLng);
+                     pickupLatLng = new LatLng(LocationLat, LocationLng);
 
                     pickupMarker = mMap.addMarker(new MarkerOptions().position(pickupLatLng).title("Pickup Location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.patient)));
-                    getRouteToMarker(pickupLatLng);
-                    drawRouteToDestination(pickupLatLng);
+
                 }
 
             }
@@ -371,24 +371,27 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
     }
 
-    private void getRouteToMarker(LatLng pickupLatLng) {
-        Routing routing = new Routing.Builder()
-                .travelMode(AbstractRouting.TravelMode.DRIVING)
-                .withListener(this)
-                .alternativeRoutes(false)
-                .waypoints(new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude()), pickupLatLng)
+
+    private void drawRouteToDestination(){
+        LatLng currentLatLang = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        GeoApiContext context = new GeoApiContext.Builder()
+                .apiKey(BuildConfig.MAPS_API_KEY)
                 .build();
-        routing.execute();
+        DirectionsResult pickupDirectionsresult = null;
+        try {
+            pickupDirectionsresult = DirectionsApi.newRequest(context)
+                    .mode(TravelMode.DRIVING)
+                    .origin(new com.google.maps.model.LatLng(currentLatLang.latitude, currentLatLang.longitude))
+                    .waypoints(new com.google.maps.model.LatLng(pickupLatLng.latitude, pickupLatLng.longitude))
+                    .destination(new com.google.maps.model.LatLng(destinationLatLng.latitude, destinationLatLng.longitude)).await();
+        } catch (Exception e) {
+            Toast.makeText(DriverMapActivity.this, " Error getting ambulance directions \n" + e.toString(),
+                    Toast.LENGTH_LONG).show();
+        }
 
-    }
-
-    private void drawRouteToDestination(LatLng _destinationLatLng){
-        LatLng currentLatLng = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-        PolylineOptions polylineOptions = new PolylineOptions();
-        polylineOptions.add(currentLatLng)
-                .add(_destinationLatLng);
-
-        Polyline polyline = mMap.addPolyline(polylineOptions);
+        if (pickupDirectionsresult != null && pickupDirectionsresult.routes != null && pickupDirectionsresult.routes.length > 0) {
+            drawRouteOnMap(pickupDirectionsresult.routes[0], Color.argb(255, 0, 0, 0));
+        }
     }
 
     @Override
@@ -413,6 +416,11 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 checkLocationPermission();
             }
         }
+
+        mFusedLoactionClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).addOnCompleteListener((locationTask)->{
+            Location location = locationTask.getResult();
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 13));
+        });
     }
 
     LocationCallback mLocationCallback = new LocationCallback(){
@@ -431,8 +439,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     myLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
                     myMarker = mMap.addMarker(new MarkerOptions().position(myLocation).title("Your Ambulance").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ambulance)));
 
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                    mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
 
                     String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                     DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
@@ -442,17 +448,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
                     geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
 
-//                    switch (customerId){
-//                        case "":
-//                            geoFireWorking.removeLocation(userId);
-//                            geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
-//                            break;
-//
-//                        default:
-//                            geoFireAvailable.removeLocation(userId);
-//                            geoFireWorking.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
-//                            break;
-//                    }
                 }
             }
         }
@@ -526,52 +521,15 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             disconnectDriver();
 
         }
+
+        endRide();
     }
     private List<Polyline> polylines;
     private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
-    @Override
-    public void onRoutingFailure(RouteException e) {
-        if(e != null) {
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }else {
-            Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
-        }
-    }
-    @Override
-    public void onRoutingStart() {
 
-    }
 
-    @Override
-    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
-        if(polylines.size()>0) {
-            for (Polyline poly : polylines) {
-                poly.remove();
-            }
-        }
 
-        polylines = new ArrayList<>();
-        //add route(s) to the map.
-        for (int i = 0; i <route.size(); i++) {
 
-            //In case of more than 5 alternative routes
-            int colorIndex = i % COLORS.length;
-
-            PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
-            polyOptions.width(10 + i * 3);
-            polyOptions.addAll(route.get(i).getPoints());
-            Polyline polyline = mMap.addPolyline(polyOptions);
-            polylines.add(polyline);
-
-            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public void onRoutingCancelled() {
-
-    }
 
     private void erasePolylines(){
         for(Polyline line : polylines){
@@ -579,4 +537,33 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         }
         polylines.clear();
     }
+
+    private void drawRouteOnMap(com.google.maps.model.DirectionsRoute route, int color) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mMap.setMyLocationEnabled(true);
+        PolylineOptions polylineOptions = new PolylineOptions();
+
+        for (com.google.maps.model.LatLng point : route.overviewPolyline.decodePath()) {
+            LatLng latLng = new LatLng(point.lat, point.lng);
+            polylineOptions.add(latLng);
+        }
+        polylineOptions.color(color);
+        polylineOptions.width(10);
+        polylineOptions.clickable(true);
+
+
+        Polyline polyline = mMap.addPolyline(polylineOptions);
+
+    }
+
+
 }
